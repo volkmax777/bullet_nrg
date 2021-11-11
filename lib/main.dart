@@ -89,7 +89,7 @@ class _MyHomePageState extends State<MyHomePage> {
       if (massEditController.text.isNotEmpty) _mass = double.parse(massEditController.text);
       if (velEditController.text.isNotEmpty) _velocity = double.parse(velEditController.text);
       if (_mass.isFinite & _velocity.isFinite) {
-        _energy = (_mass * pow(_velocity, 2)) / 2;
+        _energy = (_mass * pow(_velocity, 2)) / 2000;
       }
     });
   }
@@ -133,7 +133,7 @@ class _MyHomePageState extends State<MyHomePage> {
               TextField(
                 controller: massEditController,
                 decoration: const InputDecoration(
-                  labelText: 'Масса пули'
+                  labelText: 'Масса пули (граммы)'
                 ),
                 keyboardType: TextInputType.number,
                 inputFormatters: [
@@ -144,7 +144,7 @@ class _MyHomePageState extends State<MyHomePage> {
               TextField(
                 controller: velEditController,
                 decoration: const InputDecoration(
-                    labelText: 'Начальная скорость'
+                    labelText: 'Начальная скорость (м/с)'
                 ),
                 keyboardType: TextInputType.number,
                 inputFormatters: [
@@ -153,7 +153,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 onChanged: (String value) =>_calculate(),
               ),
               Text(
-                '$_energy',
+                '$_energy Дж',
                 style: Theme.of(context).textTheme.headline4,
               ),
             ],
