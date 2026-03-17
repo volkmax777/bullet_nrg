@@ -1,0 +1,23 @@
+{
+  "appTitle": "Ballistic Calculator",
+  "history": "History",
+  "kineticEnergy": "Kinetic energy of the shot",
+  "waitingInput": "Waiting for input...",
+  "pneumatics": "Airgun (< 10 J)",
+  "smallCaliber": "Small caliber (.22 LR)",
+  "pistol": "Pistol (9x19, .45 ACP)",
+  "intermediate": "Intermediate (5.56, 7.62x39)",
+  "rifle": "Rifle (.308, .30-06)",
+  "magnum": "Magnum / Large (.338 LM, .50 BMG)",
+  "bulletMass": "Bullet Mass",
+  "velocity": "Velocity",
+  "formula": "Formula: E = (m · v²) / 2",
+  "saveToArchive": "Save to archive",
+  "archiveEmpty": "Archive is empty",
+  "enterDataPrompt": "Enter data for calculation first",
+  "savedToArchive": "Calculation saved to archive",
+  "massLabel": "Mass",
+  "velocityLabel": "Velocity",
+  "grains": "gr",
+  "grams": "g"
+}

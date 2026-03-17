@@ -1,6 +1,5 @@
-package com.volkmax.nrg_calc
+package com.example.nrg_calc
 
 import io.flutter.embedding.android.FlutterActivity
 
-class MainActivity: FlutterActivity() {
-}
+class MainActivity : FlutterActivity()

@@ -1,0 +1,23 @@
+{
+  "appTitle": "Баллистический калькулятор",
+  "history": "Архив расчетов",
+  "kineticEnergy": "Кинетическая энергия выстрела",
+  "waitingInput": "Ожидание ввода...",
+  "pneumatics": "Пневматика (< 10 Дж)",
+  "smallCaliber": "Малый калибр (.22 LR)",
+  "pistol": "Пистолет (9x19, .45 ACP)",
+  "intermediate": "Промежуточный (5.56, 7.62x39)",
+  "rifle": "Винтовочный (.308, .30-06)",
+  "magnum": "Магнум / Крупный (.338 LM, .50 BMG)",
+  "bulletMass": "Масса пули",
+  "velocity": "Скорость",
+  "formula": "Формула: E = (m · v²) / 2",
+  "saveToArchive": "Сохранить в архив",
+  "archiveEmpty": "Архив пуст",
+  "enterDataPrompt": "Сначала введите данные для расчета",
+  "savedToArchive": "Расчет сохранен в архив",
+  "massLabel": "Масса",
+  "velocityLabel": "Скорость",
+  "grains": "гран",
+  "grams": "г"
+}
