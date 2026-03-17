@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "nrg_calc" "\0"
+            VALUE "FileDescription", "BulletNRG" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "nrg_calc" "\0"
+            VALUE "InternalName", "BulletNRG" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "nrg_calc.exe" "\0"
-            VALUE "ProductName", "nrg_calc" "\0"
+            VALUE "OriginalFilename", "bullet_nrg.exe" "\0"
+            VALUE "ProductName", "BulletNRG" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
