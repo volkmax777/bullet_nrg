@@ -113,8 +113,7 @@ class CalculatorScreen extends StatefulWidget {
 class _CalculatorScreenState extends State<CalculatorScreen> {
   final TextEditingController _massController = TextEditingController();
   final TextEditingController _velocityController = TextEditingController();
-  String _lastWeaponName = '';
-  String _lastAmmoName = '';
+  ArchiveMetadata? _currentArchiveMetadata;
 
   double _energyJoules = 0.0;
   double _energyFtLbf = 0.0;
@@ -217,14 +216,16 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       return;
     }
 
-    final metadata = await _showArchiveMetadataDialog();
-    if (!mounted || metadata == null) {
+    if (_currentArchiveMetadata == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.selectArchiveMetadataPrompt)));
       return;
     }
 
     final record = CalculationRecord(
-      weaponName: metadata.weaponName,
-      ammoName: metadata.ammoName,
+      weaponName: _currentArchiveMetadata!.weaponName,
+      ammoName: _currentArchiveMetadata!.ammoName,
       mass: double.parse(massText),
       isMassGrains: _isMassGrains,
       velocity: double.parse(velocityText),
@@ -235,8 +236,6 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     );
 
     setState(() {
-      _lastWeaponName = metadata.weaponName;
-      _lastAmmoName = metadata.ammoName;
       _archive.insert(0, record);
     });
 
@@ -247,10 +246,31 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     ).showSnackBar(SnackBar(content: Text(l10n.savedToArchive)));
   }
 
+  Future<void> _selectArchiveMetadata() async {
+    final metadata = await _showArchiveMetadataDialog();
+    if (!mounted || metadata == null) {
+      return;
+    }
+
+    setState(() {
+      _currentArchiveMetadata = metadata;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.archiveDetailsSaved),
+      ),
+    );
+  }
+
   Future<ArchiveMetadata?> _showArchiveMetadataDialog() {
     final l10n = AppLocalizations.of(context)!;
-    final weaponController = TextEditingController(text: _lastWeaponName);
-    final ammoController = TextEditingController(text: _lastAmmoName);
+    final weaponController = TextEditingController(
+      text: _currentArchiveMetadata?.weaponName ?? '',
+    );
+    final ammoController = TextEditingController(
+      text: _currentArchiveMetadata?.ammoName ?? '',
+    );
     String? errorText;
 
     return showDialog<ArchiveMetadata>(
@@ -456,6 +476,53 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                               fontSize: 14,
                             ),
                             textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Card(
+                  color: const Color(0xFF1E1E1E),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                l10n.archiveSessionTitle,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: _selectArchiveMetadata,
+                              icon: const Icon(Icons.edit_outlined),
+                              label: Text(
+                                _currentArchiveMetadata == null
+                                    ? l10n.setArchiveDetails
+                                    : l10n.changeArchiveDetails,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _currentArchiveMetadata == null
+                              ? l10n.archiveSessionNotSelected
+                              : '${l10n.weaponNameLabel}: ${_currentArchiveMetadata!.weaponName}\n${l10n.ammoNameLabel}: ${_currentArchiveMetadata!.ammoName}',
+                          style: TextStyle(
+                            color: Colors.grey.shade300,
+                            height: 1.4,
                           ),
                         ),
                       ],
@@ -720,7 +787,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
           l10n.massLabel,
           l10n.velocityLabel,
           l10n.energyLabel,
-        ].join('\t'),
+        ].map(_escapeCsvField).join(','),
       );
 
     for (final record in rows) {
@@ -734,7 +801,7 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
           '${record.mass} $massUnit',
           '${record.velocity} $velocityUnit',
           '${record.joules.toStringAsFixed(1)} J',
-        ].join('\t'),
+        ].map(_escapeCsvField).join(','),
       );
     }
 
@@ -746,6 +813,160 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(l10n.archiveCopied)));
+  }
+
+  String _escapeCsvField(String value) {
+    final escapedValue = value.replaceAll('"', '""');
+    return '"$escapedValue"';
+  }
+
+  Widget _buildFilterField({
+    required String value,
+    required String label,
+    required List<String> options,
+    required String allLabel,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return DropdownButtonFormField<String>(
+      initialValue: value,
+      decoration: InputDecoration(labelText: label),
+      items: options
+          .map(
+            (option) => DropdownMenuItem<String>(
+              value: option,
+              child: Text(
+                option == _allFilterValue ? allLabel : option,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          )
+          .toList(),
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _buildRecordDetailsRow(
+    BuildContext context, {
+    required String label,
+    required String value,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 92,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey.shade500,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(color: Colors.grey.shade200, fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileArchiveList(
+    BuildContext context,
+    List<CalculationRecord> filteredArchive,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      itemCount: filteredArchive.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final record = filteredArchive[index];
+        final massUnit = record.isMassGrains ? l10n.grains : l10n.grams;
+        final velocityUnit = record.isVelocityFps ? 'fps' : 'm/s';
+
+        return Card(
+          color: const Color(0xFF1E1E1E),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${record.joules.toStringAsFixed(1)} J',
+                            style: const TextStyle(
+                              color: Colors.deepOrange,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 24,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _formatDate(record.timestamp),
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.grey,
+                      ),
+                      tooltip: l10n.deleteRecord,
+                      onPressed: () {
+                        widget.onDelete(record);
+                        setState(() {});
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                _buildRecordDetailsRow(
+                  context,
+                  label: l10n.weaponNameLabel,
+                  value: record.weaponName,
+                ),
+                _buildRecordDetailsRow(
+                  context,
+                  label: l10n.ammoNameLabel,
+                  value: record.ammoName,
+                ),
+                _buildRecordDetailsRow(
+                  context,
+                  label: l10n.massLabel,
+                  value: '${record.mass} $massUnit',
+                ),
+                _buildRecordDetailsRow(
+                  context,
+                  label: l10n.velocityLabel,
+                  value: '${record.velocity} $velocityUnit',
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -787,68 +1008,83 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _weaponFilter,
-                          decoration: InputDecoration(
-                            labelText: l10n.weaponNameLabel,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isCompact = constraints.maxWidth < 560;
+                      if (isCompact) {
+                        return Column(
+                          children: [
+                            _buildFilterField(
+                              value: _weaponFilter,
+                              label: l10n.weaponNameLabel,
+                              options: weaponOptions,
+                              allLabel: l10n.allWeapons,
+                              onChanged: (value) {
+                                if (value == null) {
+                                  return;
+                                }
+                                setState(() {
+                                  _weaponFilter = value;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            _buildFilterField(
+                              value: _ammoFilter,
+                              label: l10n.ammoNameLabel,
+                              options: ammoOptions,
+                              allLabel: l10n.allAmmo,
+                              onChanged: (value) {
+                                if (value == null) {
+                                  return;
+                                }
+                                setState(() {
+                                  _ammoFilter = value;
+                                });
+                              },
+                            ),
+                          ],
+                        );
+                      }
+
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: _buildFilterField(
+                              value: _weaponFilter,
+                              label: l10n.weaponNameLabel,
+                              options: weaponOptions,
+                              allLabel: l10n.allWeapons,
+                              onChanged: (value) {
+                                if (value == null) {
+                                  return;
+                                }
+                                setState(() {
+                                  _weaponFilter = value;
+                                });
+                              },
+                            ),
                           ),
-                          items: weaponOptions
-                              .map(
-                                (value) => DropdownMenuItem<String>(
-                                  value: value,
-                                  child: Text(
-                                    value == _allFilterValue
-                                        ? l10n.allWeapons
-                                        : value,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            if (value == null) {
-                              return;
-                            }
-                            setState(() {
-                              _weaponFilter = value;
-                            });
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _ammoFilter,
-                          decoration: InputDecoration(
-                            labelText: l10n.ammoNameLabel,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildFilterField(
+                              value: _ammoFilter,
+                              label: l10n.ammoNameLabel,
+                              options: ammoOptions,
+                              allLabel: l10n.allAmmo,
+                              onChanged: (value) {
+                                if (value == null) {
+                                  return;
+                                }
+                                setState(() {
+                                  _ammoFilter = value;
+                                });
+                              },
+                            ),
                           ),
-                          items: ammoOptions
-                              .map(
-                                (value) => DropdownMenuItem<String>(
-                                  value: value,
-                                  child: Text(
-                                    value == _allFilterValue
-                                        ? l10n.allAmmo
-                                        : value,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            if (value == null) {
-                              return;
-                            }
-                            setState(() {
-                              _ammoFilter = value;
-                            });
-                          },
-                        ),
-                      ),
-                    ],
+                        ],
+                      );
+                    },
                   ),
                 ),
                 Expanded(
@@ -862,65 +1098,83 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                             ),
                           ),
                         )
-                      : SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                          scrollDirection: Axis.horizontal,
-                          child: SingleChildScrollView(
-                            child: DataTable(
-                              columns: [
-                                DataColumn(label: Text(l10n.dateLabel)),
-                                DataColumn(label: Text(l10n.weaponNameLabel)),
-                                DataColumn(label: Text(l10n.ammoNameLabel)),
-                                DataColumn(label: Text(l10n.massLabel)),
-                                DataColumn(label: Text(l10n.velocityLabel)),
-                                DataColumn(label: Text(l10n.energyLabel)),
-                                const DataColumn(label: SizedBox.shrink()),
-                              ],
-                              rows: filteredArchive.map((record) {
-                                final massUnit = record.isMassGrains
-                                    ? l10n.grains
-                                    : l10n.grams;
-                                final velocityUnit = record.isVelocityFps
-                                    ? 'fps'
-                                    : 'm/s';
-                                return DataRow(
-                                  cells: [
-                                    DataCell(
-                                      Text(_formatDate(record.timestamp)),
+                      : LayoutBuilder(
+                          builder: (context, constraints) {
+                            final isCompact = constraints.maxWidth < 720;
+                            if (isCompact) {
+                              return _buildMobileArchiveList(
+                                context,
+                                filteredArchive,
+                              );
+                            }
+
+                            return SingleChildScrollView(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                              scrollDirection: Axis.horizontal,
+                              child: SingleChildScrollView(
+                                child: DataTable(
+                                  columns: [
+                                    DataColumn(label: Text(l10n.dateLabel)),
+                                    DataColumn(
+                                      label: Text(l10n.weaponNameLabel),
                                     ),
-                                    DataCell(Text(record.weaponName)),
-                                    DataCell(Text(record.ammoName)),
-                                    DataCell(Text('${record.mass} $massUnit')),
-                                    DataCell(
-                                      Text('${record.velocity} $velocityUnit'),
-                                    ),
-                                    DataCell(
-                                      Text(
-                                        '${record.joules.toStringAsFixed(1)} J',
-                                        style: const TextStyle(
-                                          color: Colors.deepOrange,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                    DataCell(
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.delete_outline,
-                                          color: Colors.grey,
-                                        ),
-                                        tooltip: l10n.deleteRecord,
-                                        onPressed: () {
-                                          widget.onDelete(record);
-                                          setState(() {});
-                                        },
-                                      ),
-                                    ),
+                                    DataColumn(label: Text(l10n.ammoNameLabel)),
+                                    DataColumn(label: Text(l10n.massLabel)),
+                                    DataColumn(label: Text(l10n.velocityLabel)),
+                                    DataColumn(label: Text(l10n.energyLabel)),
+                                    const DataColumn(label: SizedBox.shrink()),
                                   ],
-                                );
-                              }).toList(),
-                            ),
-                          ),
+                                  rows: filteredArchive.map((record) {
+                                    final massUnit = record.isMassGrains
+                                        ? l10n.grains
+                                        : l10n.grams;
+                                    final velocityUnit = record.isVelocityFps
+                                        ? 'fps'
+                                        : 'm/s';
+                                    return DataRow(
+                                      cells: [
+                                        DataCell(
+                                          Text(_formatDate(record.timestamp)),
+                                        ),
+                                        DataCell(Text(record.weaponName)),
+                                        DataCell(Text(record.ammoName)),
+                                        DataCell(
+                                          Text('${record.mass} $massUnit'),
+                                        ),
+                                        DataCell(
+                                          Text(
+                                            '${record.velocity} $velocityUnit',
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Text(
+                                            '${record.joules.toStringAsFixed(1)} J',
+                                            style: const TextStyle(
+                                              color: Colors.deepOrange,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        DataCell(
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.delete_outline,
+                                              color: Colors.grey,
+                                            ),
+                                            tooltip: l10n.deleteRecord,
+                                            onPressed: () {
+                                              widget.onDelete(record);
+                                              setState(() {});
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                 ),
               ],

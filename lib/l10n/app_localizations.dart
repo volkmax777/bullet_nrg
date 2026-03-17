@@ -188,6 +188,30 @@ abstract class AppLocalizations {
   /// **'Archive details'**
   String get archiveDetailsTitle;
 
+  /// No description provided for @archiveSessionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Current session'**
+  String get archiveSessionTitle;
+
+  /// No description provided for @setArchiveDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Set'**
+  String get setArchiveDetails;
+
+  /// No description provided for @changeArchiveDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get changeArchiveDetails;
+
+  /// No description provided for @archiveSessionNotSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Set weapon and ammo first, then you can save multiple values into this session.'**
+  String get archiveSessionNotSelected;
+
   /// No description provided for @weaponNameLabel.
   ///
   /// In en, this message translates to:
@@ -205,6 +229,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter weapon and ammo before saving'**
   String get archiveMetadataRequired;
+
+  /// No description provided for @selectArchiveMetadataPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Set weapon and ammo for the current session first'**
+  String get selectArchiveMetadataPrompt;
+
+  /// No description provided for @archiveDetailsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Weapon and ammo saved for the current session'**
+  String get archiveDetailsSaved;
 
   /// No description provided for @cancel.
   ///
@@ -245,13 +281,13 @@ abstract class AppLocalizations {
   /// No description provided for @copyArchive.
   ///
   /// In en, this message translates to:
-  /// **'Copy table'**
+  /// **'Copy CSV'**
   String get copyArchive;
 
   /// No description provided for @archiveCopied.
   ///
   /// In en, this message translates to:
-  /// **'Archive table copied to clipboard'**
+  /// **'Archive CSV copied to clipboard'**
   String get archiveCopied;
 
   /// No description provided for @allWeapons.

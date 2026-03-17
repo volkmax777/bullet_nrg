@@ -54,6 +54,19 @@ class AppLocalizationsRu extends AppLocalizations {
   String get archiveDetailsTitle => 'Данные архива';
 
   @override
+  String get archiveSessionTitle => 'Текущий отстрел';
+
+  @override
+  String get setArchiveDetails => 'Задать';
+
+  @override
+  String get changeArchiveDetails => 'Сменить';
+
+  @override
+  String get archiveSessionNotSelected =>
+      'Сначала задайте оружие и патрон, после этого можно многократно сохранять значения в этот отстрел.';
+
+  @override
   String get weaponNameLabel => 'Оружие';
 
   @override
@@ -62,6 +75,14 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get archiveMetadataRequired =>
       'Укажите оружие и патрон перед сохранением';
+
+  @override
+  String get selectArchiveMetadataPrompt =>
+      'Сначала задайте оружие и патрон для текущего отстрела';
+
+  @override
+  String get archiveDetailsSaved =>
+      'Пара оружие/патрон сохранена для текущего отстрела';
 
   @override
   String get cancel => 'Отмена';
@@ -83,10 +104,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get savedToArchive => 'Расчет сохранен в архив';
 
   @override
-  String get copyArchive => 'Копировать таблицу';
+  String get copyArchive => 'Копировать CSV';
 
   @override
-  String get archiveCopied => 'Таблица архива скопирована в буфер обмена';
+  String get archiveCopied => 'CSV архива скопирован в буфер обмена';
 
   @override
   String get allWeapons => 'Все оружие';

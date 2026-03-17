@@ -54,6 +54,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get archiveDetailsTitle => 'Archive details';
 
   @override
+  String get archiveSessionTitle => 'Current session';
+
+  @override
+  String get setArchiveDetails => 'Set';
+
+  @override
+  String get changeArchiveDetails => 'Change';
+
+  @override
+  String get archiveSessionNotSelected =>
+      'Set weapon and ammo first, then you can save multiple values into this session.';
+
+  @override
   String get weaponNameLabel => 'Weapon';
 
   @override
@@ -61,6 +74,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get archiveMetadataRequired => 'Enter weapon and ammo before saving';
+
+  @override
+  String get selectArchiveMetadataPrompt =>
+      'Set weapon and ammo for the current session first';
+
+  @override
+  String get archiveDetailsSaved =>
+      'Weapon and ammo saved for the current session';
 
   @override
   String get cancel => 'Cancel';
@@ -82,10 +103,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get savedToArchive => 'Calculation saved to archive';
 
   @override
-  String get copyArchive => 'Copy table';
+  String get copyArchive => 'Copy CSV';
 
   @override
-  String get archiveCopied => 'Archive table copied to clipboard';
+  String get archiveCopied => 'Archive CSV copied to clipboard';
 
   @override
   String get allWeapons => 'All weapons';
