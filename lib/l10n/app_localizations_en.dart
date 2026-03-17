@@ -51,13 +51,56 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveToArchive => 'Save to archive';
 
   @override
+  String get archiveDetailsTitle => 'Archive details';
+
+  @override
+  String get weaponNameLabel => 'Weapon';
+
+  @override
+  String get ammoNameLabel => 'Ammo';
+
+  @override
+  String get archiveMetadataRequired => 'Enter weapon and ammo before saving';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get save => 'Save';
+
+  @override
   String get archiveEmpty => 'Archive is empty';
+
+  @override
+  String get archiveFilterEmpty =>
+      'No records for the selected weapon and ammo';
 
   @override
   String get enterDataPrompt => 'Enter data for calculation first';
 
   @override
   String get savedToArchive => 'Calculation saved to archive';
+
+  @override
+  String get copyArchive => 'Copy table';
+
+  @override
+  String get archiveCopied => 'Archive table copied to clipboard';
+
+  @override
+  String get allWeapons => 'All weapons';
+
+  @override
+  String get allAmmo => 'All ammo';
+
+  @override
+  String get dateLabel => 'Date';
+
+  @override
+  String get energyLabel => 'Energy';
+
+  @override
+  String get deleteRecord => 'Delete record';
 
   @override
   String get massLabel => 'Mass';

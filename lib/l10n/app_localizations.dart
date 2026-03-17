@@ -182,11 +182,53 @@ abstract class AppLocalizations {
   /// **'Save to archive'**
   String get saveToArchive;
 
+  /// No description provided for @archiveDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive details'**
+  String get archiveDetailsTitle;
+
+  /// No description provided for @weaponNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Weapon'**
+  String get weaponNameLabel;
+
+  /// No description provided for @ammoNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Ammo'**
+  String get ammoNameLabel;
+
+  /// No description provided for @archiveMetadataRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter weapon and ammo before saving'**
+  String get archiveMetadataRequired;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
   /// No description provided for @archiveEmpty.
   ///
   /// In en, this message translates to:
   /// **'Archive is empty'**
   String get archiveEmpty;
+
+  /// No description provided for @archiveFilterEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No records for the selected weapon and ammo'**
+  String get archiveFilterEmpty;
 
   /// No description provided for @enterDataPrompt.
   ///
@@ -199,6 +241,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Calculation saved to archive'**
   String get savedToArchive;
+
+  /// No description provided for @copyArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy table'**
+  String get copyArchive;
+
+  /// No description provided for @archiveCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive table copied to clipboard'**
+  String get archiveCopied;
+
+  /// No description provided for @allWeapons.
+  ///
+  /// In en, this message translates to:
+  /// **'All weapons'**
+  String get allWeapons;
+
+  /// No description provided for @allAmmo.
+  ///
+  /// In en, this message translates to:
+  /// **'All ammo'**
+  String get allAmmo;
+
+  /// No description provided for @dateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get dateLabel;
+
+  /// No description provided for @energyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Energy'**
+  String get energyLabel;
+
+  /// No description provided for @deleteRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete record'**
+  String get deleteRecord;
 
   /// No description provided for @massLabel.
   ///

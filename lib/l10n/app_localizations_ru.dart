@@ -51,13 +51,57 @@ class AppLocalizationsRu extends AppLocalizations {
   String get saveToArchive => 'Сохранить в архив';
 
   @override
+  String get archiveDetailsTitle => 'Данные архива';
+
+  @override
+  String get weaponNameLabel => 'Оружие';
+
+  @override
+  String get ammoNameLabel => 'Патрон';
+
+  @override
+  String get archiveMetadataRequired =>
+      'Укажите оружие и патрон перед сохранением';
+
+  @override
+  String get cancel => 'Отмена';
+
+  @override
+  String get save => 'Сохранить';
+
+  @override
   String get archiveEmpty => 'Архив пуст';
+
+  @override
+  String get archiveFilterEmpty =>
+      'Нет записей для выбранного оружия и патрона';
 
   @override
   String get enterDataPrompt => 'Сначала введите данные для расчета';
 
   @override
   String get savedToArchive => 'Расчет сохранен в архив';
+
+  @override
+  String get copyArchive => 'Копировать таблицу';
+
+  @override
+  String get archiveCopied => 'Таблица архива скопирована в буфер обмена';
+
+  @override
+  String get allWeapons => 'Все оружие';
+
+  @override
+  String get allAmmo => 'Все патроны';
+
+  @override
+  String get dateLabel => 'Дата';
+
+  @override
+  String get energyLabel => 'Энергия';
+
+  @override
+  String get deleteRecord => 'Удалить запись';
 
   @override
   String get massLabel => 'Масса';
