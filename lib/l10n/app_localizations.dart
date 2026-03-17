@@ -182,11 +182,89 @@ abstract class AppLocalizations {
   /// **'Save to archive'**
   String get saveToArchive;
 
+  /// No description provided for @archiveDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive details'**
+  String get archiveDetailsTitle;
+
+  /// No description provided for @archiveSessionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Current session'**
+  String get archiveSessionTitle;
+
+  /// No description provided for @setArchiveDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Set'**
+  String get setArchiveDetails;
+
+  /// No description provided for @changeArchiveDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get changeArchiveDetails;
+
+  /// No description provided for @archiveSessionNotSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Set weapon and ammo first, then you can save multiple values into this session.'**
+  String get archiveSessionNotSelected;
+
+  /// No description provided for @weaponNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Weapon'**
+  String get weaponNameLabel;
+
+  /// No description provided for @ammoNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Ammo'**
+  String get ammoNameLabel;
+
+  /// No description provided for @archiveMetadataRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter weapon and ammo before saving'**
+  String get archiveMetadataRequired;
+
+  /// No description provided for @selectArchiveMetadataPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Set weapon and ammo for the current session first'**
+  String get selectArchiveMetadataPrompt;
+
+  /// No description provided for @archiveDetailsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Weapon and ammo saved for the current session'**
+  String get archiveDetailsSaved;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
   /// No description provided for @archiveEmpty.
   ///
   /// In en, this message translates to:
   /// **'Archive is empty'**
   String get archiveEmpty;
+
+  /// No description provided for @archiveFilterEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No records for the selected weapon and ammo'**
+  String get archiveFilterEmpty;
 
   /// No description provided for @enterDataPrompt.
   ///
@@ -199,6 +277,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Calculation saved to archive'**
   String get savedToArchive;
+
+  /// No description provided for @copyArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy CSV'**
+  String get copyArchive;
+
+  /// No description provided for @archiveCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive CSV copied to clipboard'**
+  String get archiveCopied;
+
+  /// No description provided for @allWeapons.
+  ///
+  /// In en, this message translates to:
+  /// **'All weapons'**
+  String get allWeapons;
+
+  /// No description provided for @allAmmo.
+  ///
+  /// In en, this message translates to:
+  /// **'All ammo'**
+  String get allAmmo;
+
+  /// No description provided for @dateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get dateLabel;
+
+  /// No description provided for @energyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Energy'**
+  String get energyLabel;
+
+  /// No description provided for @deleteRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete record'**
+  String get deleteRecord;
 
   /// No description provided for @massLabel.
   ///

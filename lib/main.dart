@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -10,6 +11,8 @@ void main() {
 
 // Модель для сохранения в архив с методами сериализации
 class CalculationRecord {
+  final String weaponName;
+  final String ammoName;
   final double mass;
   final bool isMassGrains;
   final double velocity;
@@ -19,6 +22,8 @@ class CalculationRecord {
   final DateTime timestamp;
 
   CalculationRecord({
+    required this.weaponName,
+    required this.ammoName,
     required this.mass,
     required this.isMassGrains,
     required this.velocity,
@@ -29,17 +34,21 @@ class CalculationRecord {
   });
 
   Map<String, dynamic> toJson() => {
-        'mass': mass,
-        'isMassGrains': isMassGrains,
-        'velocity': velocity,
-        'isVelocityFps': isVelocityFps,
-        'joules': joules,
-        'ftLbf': ftLbf,
-        'timestamp': timestamp.toIso8601String(),
-      };
+    'weaponName': weaponName,
+    'ammoName': ammoName,
+    'mass': mass,
+    'isMassGrains': isMassGrains,
+    'velocity': velocity,
+    'isVelocityFps': isVelocityFps,
+    'joules': joules,
+    'ftLbf': ftLbf,
+    'timestamp': timestamp.toIso8601String(),
+  };
 
   factory CalculationRecord.fromJson(Map<String, dynamic> json) =>
       CalculationRecord(
+        weaponName: json['weaponName'],
+        ammoName: json['ammoName'],
         mass: json['mass'],
         isMassGrains: json['isMassGrains'],
         velocity: json['velocity'],
@@ -64,10 +73,7 @@ class BulletNrgApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('en'),
-        Locale('ru'),
-      ],
+      supportedLocales: const [Locale('en'), Locale('ru')],
       theme: ThemeData.dark().copyWith(
         primaryColor: Colors.deepOrange,
         scaffoldBackgroundColor: const Color(0xFF121212),
@@ -107,6 +113,7 @@ class CalculatorScreen extends StatefulWidget {
 class _CalculatorScreenState extends State<CalculatorScreen> {
   final TextEditingController _massController = TextEditingController();
   final TextEditingController _velocityController = TextEditingController();
+  ArchiveMetadata? _currentArchiveMetadata;
 
   double _energyJoules = 0.0;
   double _energyFtLbf = 0.0;
@@ -135,7 +142,9 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         setState(() {
           _archive.clear();
           _archive.addAll(
-            decodedList.map((item) => CalculationRecord.fromJson(item)).toList()
+            decodedList
+                .map((item) => CalculationRecord.fromJson(item))
+                .toList(),
           );
         });
       } catch (e) {
@@ -147,7 +156,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   Future<void> _saveArchiveToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     final String encodedList = jsonEncode(
-      _archive.map((record) => record.toJson()).toList()
+      _archive.map((record) => record.toJson()).toList(),
     );
     await prefs.setString('archive_data', encodedList);
   }
@@ -195,19 +204,28 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     });
   }
 
-  void _saveToArchive() {
+  Future<void> _saveToArchive() async {
     final massText = _massController.text.replaceAll(',', '.');
     final velocityText = _velocityController.text.replaceAll(',', '.');
     final l10n = AppLocalizations.of(context)!;
 
     if (massText.isEmpty || velocityText.isEmpty || _energyJoules == 0.0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.enterDataPrompt)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.enterDataPrompt)));
+      return;
+    }
+
+    if (_currentArchiveMetadata == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.selectArchiveMetadataPrompt)));
       return;
     }
 
     final record = CalculationRecord(
+      weaponName: _currentArchiveMetadata!.weaponName,
+      ammoName: _currentArchiveMetadata!.ammoName,
       mass: double.parse(massText),
       isMassGrains: _isMassGrains,
       velocity: double.parse(velocityText),
@@ -220,12 +238,136 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     setState(() {
       _archive.insert(0, record);
     });
-    
+
     _saveArchiveToPrefs();
 
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.savedToArchive)));
+  }
+
+  Future<void> _selectArchiveMetadata() async {
+    final metadata = await _showArchiveMetadataDialog();
+    if (!mounted || metadata == null) {
+      return;
+    }
+
+    setState(() {
+      _currentArchiveMetadata = metadata;
+    });
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.savedToArchive)),
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.archiveDetailsSaved),
+      ),
     );
+  }
+
+  Future<ArchiveMetadata?> _showArchiveMetadataDialog() {
+    final l10n = AppLocalizations.of(context)!;
+    final weaponController = TextEditingController(
+      text: _currentArchiveMetadata?.weaponName ?? '',
+    );
+    final ammoController = TextEditingController(
+      text: _currentArchiveMetadata?.ammoName ?? '',
+    );
+    String? errorText;
+
+    return showDialog<ArchiveMetadata>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text(l10n.archiveDetailsTitle),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: weaponController,
+                    textInputAction: TextInputAction.next,
+                    decoration: InputDecoration(
+                      labelText: l10n.weaponNameLabel,
+                      prefixIcon: const Icon(Icons.sports_martial_arts),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: ammoController,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) {
+                      final result = _validateArchiveMetadata(
+                        weaponController.text,
+                        ammoController.text,
+                      );
+                      if (result == null) {
+                        Navigator.of(dialogContext).pop(
+                          ArchiveMetadata(
+                            weaponName: weaponController.text.trim(),
+                            ammoName: ammoController.text.trim(),
+                          ),
+                        );
+                      } else {
+                        setDialogState(() {
+                          errorText = result;
+                        });
+                      }
+                    },
+                    decoration: InputDecoration(
+                      labelText: l10n.ammoNameLabel,
+                      prefixIcon: const Icon(Icons.adjust),
+                    ),
+                  ),
+                  if (errorText != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      errorText!,
+                      style: const TextStyle(color: Colors.redAccent),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: Text(l10n.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final result = _validateArchiveMetadata(
+                      weaponController.text,
+                      ammoController.text,
+                    );
+                    if (result != null) {
+                      setDialogState(() {
+                        errorText = result;
+                      });
+                      return;
+                    }
+
+                    Navigator.of(dialogContext).pop(
+                      ArchiveMetadata(
+                        weaponName: weaponController.text.trim(),
+                        ammoName: ammoController.text.trim(),
+                      ),
+                    );
+                  },
+                  child: Text(l10n.save),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String? _validateArchiveMetadata(String weaponName, String ammoName) {
+    final l10n = AppLocalizations.of(context)!;
+    if (weaponName.trim().isEmpty || ammoName.trim().isEmpty) {
+      return l10n.archiveMetadataRequired;
+    }
+    return null;
   }
 
   void _openArchive() {
@@ -237,7 +379,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
             setState(() {
               _archive.remove(record);
             });
-            _saveArchiveToPrefs(); 
+            _saveArchiveToPrefs();
           },
         ),
       ),
@@ -257,7 +399,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.appTitle),
@@ -280,15 +422,23 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               children: [
                 Card(
                   color: const Color(0xFF242424),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                   elevation: 8,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 20,
+                      horizontal: 20,
+                    ),
                     child: Column(
                       children: [
                         Text(
                           l10n.kineticEnergy,
-                          style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                          style: TextStyle(
+                            color: Colors.grey.shade400,
+                            fontSize: 14,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 10),
@@ -310,7 +460,10 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                         ),
                         const SizedBox(height: 20),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.deepOrange.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(20),
@@ -330,7 +483,54 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                
+                Card(
+                  color: const Color(0xFF1E1E1E),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                l10n.archiveSessionTitle,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: _selectArchiveMetadata,
+                              icon: const Icon(Icons.edit_outlined),
+                              label: Text(
+                                _currentArchiveMetadata == null
+                                    ? l10n.setArchiveDetails
+                                    : l10n.changeArchiveDetails,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _currentArchiveMetadata == null
+                              ? l10n.archiveSessionNotSelected
+                              : '${l10n.weaponNameLabel}: ${_currentArchiveMetadata!.weaponName}\n${l10n.ammoNameLabel}: ${_currentArchiveMetadata!.ammoName}',
+                          style: TextStyle(
+                            color: Colors.grey.shade300,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -338,7 +538,9 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                       flex: 3,
                       child: TextField(
                         controller: _massController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         decoration: InputDecoration(
                           labelText: l10n.bulletMass,
                           prefixIcon: const Icon(Icons.scale),
@@ -359,36 +561,54 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             GestureDetector(
-                              onTap: () => setState(() { _isMassGrains = false; _calculateEnergy(); }),
+                              onTap: () => setState(() {
+                                _isMassGrains = false;
+                                _calculateEnergy();
+                              }),
                               child: Text(
                                 'g',
                                 style: TextStyle(
                                   fontSize: 18,
-                                  fontWeight: !_isMassGrains ? FontWeight.bold : FontWeight.normal,
-                                  color: !_isMassGrains ? Colors.deepOrange : Colors.grey,
+                                  fontWeight: !_isMassGrains
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: !_isMassGrains
+                                      ? Colors.deepOrange
+                                      : Colors.grey,
                                 ),
                               ),
                             ),
-                            Container(width: 1, height: 30, color: Colors.grey.shade700),
+                            Container(
+                              width: 1,
+                              height: 30,
+                              color: Colors.grey.shade700,
+                            ),
                             GestureDetector(
-                              onTap: () => setState(() { _isMassGrains = true; _calculateEnergy(); }),
+                              onTap: () => setState(() {
+                                _isMassGrains = true;
+                                _calculateEnergy();
+                              }),
                               child: Text(
                                 'gr',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  fontWeight: _isMassGrains ? FontWeight.bold : FontWeight.normal,
-                                  color: _isMassGrains ? Colors.deepOrange : Colors.grey,
+                                  fontWeight: _isMassGrains
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: _isMassGrains
+                                      ? Colors.deepOrange
+                                      : Colors.grey,
                                 ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                    )
+                    ),
                   ],
                 ),
                 const SizedBox(height: 20),
-                
+
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -396,7 +616,9 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                       flex: 3,
                       child: TextField(
                         controller: _velocityController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         decoration: InputDecoration(
                           labelText: l10n.velocity,
                           prefixIcon: const Icon(Icons.speed),
@@ -417,41 +639,62 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             GestureDetector(
-                              onTap: () => setState(() { _isVelocityFps = false; _calculateEnergy(); }),
+                              onTap: () => setState(() {
+                                _isVelocityFps = false;
+                                _calculateEnergy();
+                              }),
                               child: Text(
                                 'm/s',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  fontWeight: !_isVelocityFps ? FontWeight.bold : FontWeight.normal,
-                                  color: !_isVelocityFps ? Colors.deepOrange : Colors.grey,
+                                  fontWeight: !_isVelocityFps
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: !_isVelocityFps
+                                      ? Colors.deepOrange
+                                      : Colors.grey,
                                 ),
                               ),
                             ),
-                            Container(width: 1, height: 30, color: Colors.grey.shade700),
+                            Container(
+                              width: 1,
+                              height: 30,
+                              color: Colors.grey.shade700,
+                            ),
                             GestureDetector(
-                              onTap: () => setState(() { _isVelocityFps = true; _calculateEnergy(); }),
+                              onTap: () => setState(() {
+                                _isVelocityFps = true;
+                                _calculateEnergy();
+                              }),
                               child: Text(
                                 'fps',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  fontWeight: _isVelocityFps ? FontWeight.bold : FontWeight.normal,
-                                  color: _isVelocityFps ? Colors.deepOrange : Colors.grey,
+                                  fontWeight: _isVelocityFps
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: _isVelocityFps
+                                      ? Colors.deepOrange
+                                      : Colors.grey,
                                 ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                    )
+                    ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 40),
-                
+
                 ElevatedButton.icon(
                   onPressed: _saveToArchive,
                   icon: const Icon(Icons.save),
-                  label: Text(l10n.saveToArchive, style: const TextStyle(fontSize: 16)),
+                  label: Text(
+                    l10n.saveToArchive,
+                    style: const TextStyle(fontSize: 16),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.deepOrange,
                     foregroundColor: Colors.white,
@@ -461,12 +704,15 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 20),
                 Center(
                   child: Text(
                     l10n.formula,
-                    style: TextStyle(color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -494,17 +740,262 @@ class ArchiveScreen extends StatefulWidget {
 }
 
 class _ArchiveScreenState extends State<ArchiveScreen> {
+  static const String _allFilterValue = '__all__';
+
+  String _weaponFilter = _allFilterValue;
+  String _ammoFilter = _allFilterValue;
+
   String _formatDate(DateTime dt) {
     return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+
+  List<String> _buildFilterValues(Iterable<String> values) {
+    final uniqueValues =
+        values
+            .map((value) => value.trim())
+            .where((value) => value.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+    return <String>[_allFilterValue, ...uniqueValues];
+  }
+
+  List<CalculationRecord> _filteredArchive() {
+    return widget.archive.where((record) {
+      final matchesWeapon =
+          _weaponFilter == _allFilterValue ||
+          record.weaponName == _weaponFilter;
+      final matchesAmmo =
+          _ammoFilter == _allFilterValue || record.ammoName == _ammoFilter;
+      return matchesWeapon && matchesAmmo;
+    }).toList();
+  }
+
+  Future<void> _copyFilteredArchive() async {
+    final l10n = AppLocalizations.of(context)!;
+    final rows = _filteredArchive();
+    if (rows.isEmpty) {
+      return;
+    }
+
+    final buffer = StringBuffer()
+      ..writeln(
+        [
+          l10n.dateLabel,
+          l10n.weaponNameLabel,
+          l10n.ammoNameLabel,
+          l10n.massLabel,
+          l10n.velocityLabel,
+          l10n.energyLabel,
+        ].map(_escapeCsvField).join(','),
+      );
+
+    for (final record in rows) {
+      final massUnit = record.isMassGrains ? l10n.grains : l10n.grams;
+      final velocityUnit = record.isVelocityFps ? 'fps' : 'm/s';
+      buffer.writeln(
+        [
+          _formatDate(record.timestamp),
+          record.weaponName,
+          record.ammoName,
+          '${record.mass} $massUnit',
+          '${record.velocity} $velocityUnit',
+          '${record.joules.toStringAsFixed(1)} J',
+        ].map(_escapeCsvField).join(','),
+      );
+    }
+
+    await Clipboard.setData(ClipboardData(text: buffer.toString()));
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.archiveCopied)));
+  }
+
+  String _escapeCsvField(String value) {
+    final escapedValue = value.replaceAll('"', '""');
+    return '"$escapedValue"';
+  }
+
+  Widget _buildFilterField({
+    required String value,
+    required String label,
+    required List<String> options,
+    required String allLabel,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return DropdownButtonFormField<String>(
+      initialValue: value,
+      decoration: InputDecoration(labelText: label),
+      items: options
+          .map(
+            (option) => DropdownMenuItem<String>(
+              value: option,
+              child: Text(
+                option == _allFilterValue ? allLabel : option,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          )
+          .toList(),
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _buildRecordDetailsRow(
+    BuildContext context, {
+    required String label,
+    required String value,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 92,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey.shade500,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(color: Colors.grey.shade200, fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileArchiveList(
+    BuildContext context,
+    List<CalculationRecord> filteredArchive,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      itemCount: filteredArchive.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final record = filteredArchive[index];
+        final massUnit = record.isMassGrains ? l10n.grains : l10n.grams;
+        final velocityUnit = record.isVelocityFps ? 'fps' : 'm/s';
+
+        return Card(
+          color: const Color(0xFF1E1E1E),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${record.joules.toStringAsFixed(1)} J',
+                            style: const TextStyle(
+                              color: Colors.deepOrange,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 24,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _formatDate(record.timestamp),
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.grey,
+                      ),
+                      tooltip: l10n.deleteRecord,
+                      onPressed: () {
+                        widget.onDelete(record);
+                        setState(() {});
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                _buildRecordDetailsRow(
+                  context,
+                  label: l10n.weaponNameLabel,
+                  value: record.weaponName,
+                ),
+                _buildRecordDetailsRow(
+                  context,
+                  label: l10n.ammoNameLabel,
+                  value: record.ammoName,
+                ),
+                _buildRecordDetailsRow(
+                  context,
+                  label: l10n.massLabel,
+                  value: '${record.mass} $massUnit',
+                ),
+                _buildRecordDetailsRow(
+                  context,
+                  label: l10n.velocityLabel,
+                  value: '${record.velocity} $velocityUnit',
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    
+    final weaponOptions = _buildFilterValues(
+      widget.archive.map((record) => record.weaponName),
+    );
+    final ammoOptions = _buildFilterValues(
+      widget.archive.map((record) => record.ammoName),
+    );
+    if (!weaponOptions.contains(_weaponFilter)) {
+      _weaponFilter = _allFilterValue;
+    }
+    if (!ammoOptions.contains(_ammoFilter)) {
+      _ammoFilter = _allFilterValue;
+    }
+    final filteredArchive = _filteredArchive();
+
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.history),
+        actions: [
+          IconButton(
+            onPressed: filteredArchive.isEmpty ? null : _copyFilteredArchive,
+            icon: const Icon(Icons.copy_all_outlined),
+            tooltip: l10n.copyArchive,
+          ),
+        ],
       ),
       body: widget.archive.isEmpty
           ? Center(
@@ -513,64 +1004,188 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
                 style: TextStyle(color: Colors.grey.shade500, fontSize: 18),
               ),
             )
-          : ListView.builder(
-              itemCount: widget.archive.length,
-              itemBuilder: (context, index) {
-                final record = widget.archive[index];
-                final massUnit = record.isMassGrains ? l10n.grains : l10n.grams;
-                final velUnit = record.isVelocityFps ? 'fps' : 'm/s';
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isCompact = constraints.maxWidth < 560;
+                      if (isCompact) {
+                        return Column(
+                          children: [
+                            _buildFilterField(
+                              value: _weaponFilter,
+                              label: l10n.weaponNameLabel,
+                              options: weaponOptions,
+                              allLabel: l10n.allWeapons,
+                              onChanged: (value) {
+                                if (value == null) {
+                                  return;
+                                }
+                                setState(() {
+                                  _weaponFilter = value;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            _buildFilterField(
+                              value: _ammoFilter,
+                              label: l10n.ammoNameLabel,
+                              options: ammoOptions,
+                              allLabel: l10n.allAmmo,
+                              onChanged: (value) {
+                                if (value == null) {
+                                  return;
+                                }
+                                setState(() {
+                                  _ammoFilter = value;
+                                });
+                              },
+                            ),
+                          ],
+                        );
+                      }
 
-                return Dismissible(
-                  key: ValueKey(record.timestamp),
-                  direction: DismissDirection.endToStart,
-                  background: Container(
-                    color: Colors.redAccent,
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 20),
-                    child: const Icon(Icons.delete, color: Colors.white),
-                  ),
-                  onDismissed: (direction) {
-                    widget.onDelete(record);
-                    setState(() {});
-                  },
-                  child: Card(
-                    color: const Color(0xFF1E1E1E),
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.all(16),
-                      title: Text(
-                        '${record.joules.toStringAsFixed(1)} J',
-                        style: const TextStyle(
-                          color: Colors.deepOrange,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                        ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      return Row(
                         children: [
-                          const SizedBox(height: 5),
-                          Text('${l10n.massLabel}: ${record.mass} $massUnit'),
-                          Text('${l10n.velocityLabel}: ${record.velocity} $velUnit'),
-                          const SizedBox(height: 5),
-                          Text(
-                            _formatDate(record.timestamp),
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                          Expanded(
+                            child: _buildFilterField(
+                              value: _weaponFilter,
+                              label: l10n.weaponNameLabel,
+                              options: weaponOptions,
+                              allLabel: l10n.allWeapons,
+                              onChanged: (value) {
+                                if (value == null) {
+                                  return;
+                                }
+                                setState(() {
+                                  _weaponFilter = value;
+                                });
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildFilterField(
+                              value: _ammoFilter,
+                              label: l10n.ammoNameLabel,
+                              options: ammoOptions,
+                              allLabel: l10n.allAmmo,
+                              onChanged: (value) {
+                                if (value == null) {
+                                  return;
+                                }
+                                setState(() {
+                                  _ammoFilter = value;
+                                });
+                              },
+                            ),
                           ),
                         ],
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.grey),
-                        onPressed: () {
-                          widget.onDelete(record);
-                          setState(() {});
-                        },
-                      ),
-                    ),
+                      );
+                    },
                   ),
-                );
-              },
+                ),
+                Expanded(
+                  child: filteredArchive.isEmpty
+                      ? Center(
+                          child: Text(
+                            l10n.archiveFilterEmpty,
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 16,
+                            ),
+                          ),
+                        )
+                      : LayoutBuilder(
+                          builder: (context, constraints) {
+                            final isCompact = constraints.maxWidth < 720;
+                            if (isCompact) {
+                              return _buildMobileArchiveList(
+                                context,
+                                filteredArchive,
+                              );
+                            }
+
+                            return SingleChildScrollView(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                              scrollDirection: Axis.horizontal,
+                              child: SingleChildScrollView(
+                                child: DataTable(
+                                  columns: [
+                                    DataColumn(label: Text(l10n.dateLabel)),
+                                    DataColumn(
+                                      label: Text(l10n.weaponNameLabel),
+                                    ),
+                                    DataColumn(label: Text(l10n.ammoNameLabel)),
+                                    DataColumn(label: Text(l10n.massLabel)),
+                                    DataColumn(label: Text(l10n.velocityLabel)),
+                                    DataColumn(label: Text(l10n.energyLabel)),
+                                    const DataColumn(label: SizedBox.shrink()),
+                                  ],
+                                  rows: filteredArchive.map((record) {
+                                    final massUnit = record.isMassGrains
+                                        ? l10n.grains
+                                        : l10n.grams;
+                                    final velocityUnit = record.isVelocityFps
+                                        ? 'fps'
+                                        : 'm/s';
+                                    return DataRow(
+                                      cells: [
+                                        DataCell(
+                                          Text(_formatDate(record.timestamp)),
+                                        ),
+                                        DataCell(Text(record.weaponName)),
+                                        DataCell(Text(record.ammoName)),
+                                        DataCell(
+                                          Text('${record.mass} $massUnit'),
+                                        ),
+                                        DataCell(
+                                          Text(
+                                            '${record.velocity} $velocityUnit',
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Text(
+                                            '${record.joules.toStringAsFixed(1)} J',
+                                            style: const TextStyle(
+                                              color: Colors.deepOrange,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        DataCell(
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.delete_outline,
+                                              color: Colors.grey,
+                                            ),
+                                            tooltip: l10n.deleteRecord,
+                                            onPressed: () {
+                                              widget.onDelete(record);
+                                              setState(() {});
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
             ),
     );
   }
+}
+
+class ArchiveMetadata {
+  final String weaponName;
+  final String ammoName;
+
+  const ArchiveMetadata({required this.weaponName, required this.ammoName});
 }
